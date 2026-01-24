@@ -1,0 +1,28 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+env/
+.venv/
+
+# Models (archivos grandes)
+*.pkl
+*.joblib
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Logs
+*.log
