@@ -1,673 +1,316 @@
 # 06 - Modelo de Machine Learning
 
-## Estado Actual vs Objetivo
+## Resumen
 
-### Estado Actual: Reglas If/Else
+El sistema utiliza un modelo **Random Forest Classifier** entrenado con datos climáticos históricos de Jerusalén, Ecuador. El modelo predice si se debe regar o no basándose en 7 variables.
 
-Actualmente el sistema usa reglas programadas manualmente en Node-RED:
-
-```javascript
-if (humedad_suelo < 20) {
-    decision = "REGAR";  // Suelo critico
-}
-else if (humedad_suelo < 35 && prob_lluvia > 70) {
-    decision = "NO_REGAR";  // Esperar lluvia
-}
-// ... mas reglas
-```
-
-**Esto NO es Machine Learning**, son reglas deterministas.
-
-### Objetivo: Modelo ML Real
-
-Entrenar un modelo de Machine Learning que:
-1. Aprenda de datos historicos
-2. Generalice a situaciones nuevas
-3. Mejore con mas datos
+| Métrica | Valor |
+|---------|-------|
+| **Accuracy** | 99.83% |
+| **Precision** | 98.92% |
+| **Recall** | 99.46% |
+| **F1-Score** | 99.19% |
+| **ROC-AUC** | 1.0 |
 
 ---
 
-## Arquitectura del Modelo
+## Arquitectura
 
 ```
     ENTRENAMIENTO (Offline)                      INFERENCIA (Tiempo Real)
     =======================                      ========================
 
     +------------------+                         +------------------+
-    | Datos Historicos |                         |    Node-RED      |
+    | Datos Históricos |                         |    Node-RED      |
     | Open-Meteo API   |                         |                  |
-    | (2020-2024)      |                         | sensores + clima |
+    | Jerusalén 2024-26|                         | sensores + clima |
     +--------+---------+                         +--------+---------+
              |                                            |
-             v                                            |
-    +------------------+                                  |
-    | Feature          |                                  |
-    | Engineering      |                                  |
-    | - humedad        |                                  |
-    | - temperatura    |                                  |
-    | - prob_lluvia    |                                  |
-    | - hora, mes      |                                  |
-    +--------+---------+                                  |
+             v                                            v
+    +------------------+                         +------------------+
+    | Simular Humedad  |                         | HTTP POST        |
+    | Suelo (balance   |                         | /predict         |
+    | hídrico)         |                         |                  |
+    +--------+---------+                         +--------+---------+
              |                                            |
-             v                                            |
-    +------------------+                                  |
-    | Generar Labels   |                                  |
-    | (criterios       |                                  |
-    |  agronomicos)    |                                  |
-    +--------+---------+                                  |
+             v                                            v
+    +------------------+                         +------------------+
+    | Generar Labels   |                         |    API Flask     |
+    | (criterios FAO)  |                         |    :5001         |
+    +--------+---------+                         +--------+---------+
              |                                            |
-             v                                            |
+             v                                            v
     +------------------+        +------------------+      |
     | Entrenar         |        |                  |      |
-    | Random Forest    |------->| modelo.pkl      |      |
-    | (scikit-learn)   |        | (serializado)   |      |
-    +------------------+        +--------+---------+      |
-                                         |                |
-                                         v                v
-                                +------------------+------+
-                                |    API Flask     |
-                                |                  |
-                                | POST /predict    |
-                                | {                |
-                                |   humedad: 45,   |
-                                |   temp: 23,      |
-                                |   ...            |
-                                | }                |
-                                |                  |
-                                | Response:        |
-                                | {                |
-                                |   decision: 1,   |
-                                |   proba: 0.87    |
-                                | }                |
-                                +------------------+
-                                         |
-                                         v
-                                +------------------+
-                                |    Node-RED      |
-                                | (HTTP Request)   |
-                                +------------------+
-                                         |
-                                         v
-                                +------------------+
-                                |    ESP32         |
-                                | (REGAR/NO_REGAR) |
-                                +------------------+
+    | Random Forest    |------->| modelo.joblib   |------+
+    | (scikit-learn)   |        |                  |
+    +------------------+        +------------------+
 ```
 
 ---
 
-## Paso a Paso
+## Datos de Entrenamiento
 
-### Paso 1: Crear Estructura de Carpetas
+### Fuente de Datos
 
-```bash
-mkdir -p python/dataset
-mkdir -p python/models
-```
+| Característica | Valor |
+|----------------|-------|
+| **Ubicación** | Jerusalén, Azuay, Ecuador |
+| **Coordenadas** | -2.690425, -78.935117 |
+| **Período** | 2 años (Enero 2024 - Enero 2026) |
+| **Registros** | 17,424 (datos horarios) |
+| **Fuente** | Open-Meteo Historical API |
 
-Estructura final:
-```
-python/
-├── 01_descargar_datos.py    # Descarga datos historicos
-├── 02_entrenar_modelo.py    # Entrena el modelo
-├── 03_api_flask.py          # API para predicciones
-├── requirements.txt         # Dependencias
-├── dataset/
-│   └── datos_historicos.csv
-└── models/
-    └── modelo_riego.pkl
-```
+### Variables Descargadas de Open-Meteo
 
----
+- `temperature_2m` - Temperatura a 2 metros
+- `relative_humidity_2m` - Humedad relativa
+- `precipitation` - Precipitación por hora
 
-### Paso 2: Instalar Dependencias
+### Simulación de Humedad del Suelo
 
-Crear `python/requirements.txt`:
+Open-Meteo no provee datos de humedad del suelo para esta ubicación, por lo que se implementó un **modelo de balance hídrico** basado en:
 
-```
-pandas>=2.0.0
-numpy>=1.24.0
-scikit-learn>=1.3.0
-requests>=2.31.0
-flask>=3.0.0
-joblib>=1.3.0
-```
-
-Instalar:
-```bash
-cd python
-pip install -r requirements.txt
-```
-
----
-
-### Paso 3: Descargar Datos Historicos
-
-Usar la API Historical de Open-Meteo para obtener datos de Paute (2020-2024).
-
-**Archivo:** `python/01_descargar_datos.py`
+- Ganancia por precipitación
+- Pérdida por evapotranspiración (función de temperatura, hora, humedad ambiente)
+- Pérdida por consumo de plantas
+- Factor estacional (meses secos: junio-septiembre)
 
 ```python
-"""
-Descarga datos historicos de clima para Paute, Ecuador
-usando la API de Open-Meteo Historical Weather
-"""
+# Modelo simplificado de balance hídrico
+h_nueva = h_anterior + ganancia_lluvia - perdida_eto - perdida_plantas
 
-import requests
-import pandas as pd
-from datetime import datetime, timedelta
-
-# Coordenadas de Paute, Azuay, Ecuador
-LATITUD = -2.78
-LONGITUD = -78.76
-
-def descargar_datos_historicos(fecha_inicio, fecha_fin):
-    """
-    Descarga datos historicos de Open-Meteo
-    """
-    url = "https://archive-api.open-meteo.com/v1/archive"
-    
-    params = {
-        "latitude": LATITUD,
-        "longitude": LONGITUD,
-        "start_date": fecha_inicio,
-        "end_date": fecha_fin,
-        "hourly": [
-            "temperature_2m",
-            "relative_humidity_2m",
-            "precipitation",
-            "soil_moisture_0_to_1cm"
-        ],
-        "timezone": "America/Guayaquil"
-    }
-    
-    print(f"Descargando datos desde {fecha_inicio} hasta {fecha_fin}...")
-    response = requests.get(url, params=params)
-    
-    if response.status_code != 200:
-        raise Exception(f"Error en API: {response.status_code}")
-    
-    return response.json()
-
-
-def procesar_datos(data):
-    """
-    Convierte la respuesta de la API a DataFrame
-    """
-    hourly = data["hourly"]
-    
-    df = pd.DataFrame({
-        "timestamp": pd.to_datetime(hourly["time"]),
-        "temperatura": hourly["temperature_2m"],
-        "humedad_ambiente": hourly["relative_humidity_2m"],
-        "precipitacion": hourly["precipitation"],
-        "humedad_suelo_api": hourly["soil_moisture_0_to_1cm"]
-    })
-    
-    # Agregar features temporales
-    df["hora"] = df["timestamp"].dt.hour
-    df["mes"] = df["timestamp"].dt.month
-    df["dia_semana"] = df["timestamp"].dt.dayofweek
-    
-    return df
-
-
-def generar_labels(df):
-    """
-    Genera etiquetas (REGAR=1, NO_REGAR=0) basadas en criterios agronomicos
-    
-    Criterios para pastizales en sierra ecuatoriana:
-    - Humedad suelo < 30%: necesita riego
-    - Humedad suelo >= 60%: no necesita
-    - Entre 30-60%: depende de temperatura y precipitacion
-    """
-    def decidir_riego(row):
-        # Normalizar humedad suelo (API da valores 0-0.5, convertir a 0-100)
-        humedad_suelo = row["humedad_suelo_api"] * 200  # Aproximacion
-        humedad_suelo = min(100, max(0, humedad_suelo))
-        
-        temp = row["temperatura"]
-        precip = row["precipitacion"]
-        hora = row["hora"]
-        
-        # Regla 1: Suelo muy seco -> REGAR
-        if humedad_suelo < 25:
-            return 1
-        
-        # Regla 2: Suelo humedo -> NO REGAR
-        if humedad_suelo >= 60:
-            return 0
-        
-        # Regla 3: Esta lloviendo -> NO REGAR
-        if precip > 0.5:
-            return 0
-        
-        # Regla 4: Suelo seco + calor + mejor hora -> REGAR
-        if humedad_suelo < 40 and temp > 22 and 5 <= hora <= 9:
-            return 1
-        
-        # Regla 5: Suelo moderado + calor extremo -> REGAR
-        if humedad_suelo < 50 and temp > 28:
-            return 1
-        
-        # Default: NO REGAR
-        return 0
-    
-    df["humedad_suelo"] = df["humedad_suelo_api"] * 200
-    df["humedad_suelo"] = df["humedad_suelo"].clip(0, 100)
-    df["regar"] = df.apply(decidir_riego, axis=1)
-    
-    return df
-
-
-def main():
-    # Descargar ultimos 3 anios (Open-Meteo gratis limita a ~2 anios)
-    fecha_fin = datetime.now().strftime("%Y-%m-%d")
-    fecha_inicio = (datetime.now() - timedelta(days=730)).strftime("%Y-%m-%d")
-    
-    # Descargar
-    data = descargar_datos_historicos(fecha_inicio, fecha_fin)
-    
-    # Procesar
-    df = procesar_datos(data)
-    
-    # Generar labels
-    df = generar_labels(df)
-    
-    # Limpiar NaN
-    df = df.dropna()
-    
-    # Guardar
-    df.to_csv("dataset/datos_historicos.csv", index=False)
-    
-    print(f"\nDataset creado: {len(df)} registros")
-    print(f"Distribucion de clases:")
-    print(df["regar"].value_counts())
-    print(f"\nGuardado en: dataset/datos_historicos.csv")
-
-
-if __name__ == "__main__":
-    main()
-```
-
-Ejecutar:
-```bash
-python 01_descargar_datos.py
+# Donde:
+# - ganancia_lluvia = precipitacion * 6.0 (% por mm)
+# - perdida_eto = f(temperatura, humedad_ambiente, hora, mes)
+# - perdida_plantas = 0.15% por hora
 ```
 
 ---
 
-### Paso 4: Entrenar el Modelo
+## Variables del Modelo (Features)
 
-**Archivo:** `python/02_entrenar_modelo.py`
+| Variable | Fuente | Importancia |
+|----------|--------|-------------|
+| **humedad_suelo** | Sensor/Simulado | 73.7% |
+| **mes** | Sistema | 10.4% |
+| **prob_lluvia** | Open-Meteo | 6.5% |
+| **hora** | Sistema | 4.3% |
+| **temperatura** | Sensor | 1.9% |
+| **humedad_ambiente** | Sensor | 1.7% |
+| **precipitacion** | Open-Meteo | 1.5% |
+
+### Observaciones
+
+1. La **humedad del suelo** es por lejos la variable más importante (73.7%)
+2. El **mes** captura estacionalidad (épocas secas vs lluviosas)
+3. La **probabilidad de lluvia** ayuda a evitar riegos innecesarios
+
+---
+
+## Criterios de Etiquetado (basados en FAO)
+
+Las etiquetas de entrenamiento se generaron usando criterios agronómicos de FAO Irrigation Papers 56 y 33:
+
+| Regla | Condición | Decisión | Justificación |
+|-------|-----------|----------|---------------|
+| 1 | humedad_suelo < 20% | REGAR | Punto de marchitez |
+| 2 | humedad_suelo >= 80% | NO_REGAR | Riesgo encharcamiento |
+| 3 | precipitacion > 0.5mm | NO_REGAR | Está lloviendo |
+| 4 | precip_24h > 5mm | NO_REGAR | Llovió recientemente |
+| 5 | prob_lluvia > 70% | NO_REGAR | Va a llover |
+| 6 | humedad < 35% + temp > 28°C + hora 5-9 | REGAR | Estrés térmico |
+| 7 | humedad < 40% + hora 5-8 + prob_lluvia < 50% | REGAR | Riego preventivo mañana |
+| 8 | humedad < 50% + temp > 30°C | REGAR | Calor extremo |
+
+---
+
+## Parámetros del Modelo
 
 ```python
-"""
-Entrena un modelo Random Forest para predecir necesidad de riego
-"""
-
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
-import joblib
-
-def cargar_datos():
-    """Carga el dataset"""
-    df = pd.read_csv("dataset/datos_historicos.csv")
-    print(f"Dataset cargado: {len(df)} registros")
-    return df
-
-
-def preparar_features(df):
-    """Selecciona y prepara features para el modelo"""
-    features = [
-        "humedad_suelo",
-        "temperatura",
-        "humedad_ambiente",
-        "precipitacion",
-        "hora",
-        "mes"
-    ]
-    
-    X = df[features]
-    y = df["regar"]
-    
-    return X, y, features
-
-
-def entrenar_modelo(X, y):
-    """Entrena Random Forest con validacion cruzada"""
-    
-    # Split train/test
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
-    
-    print(f"\nTrain set: {len(X_train)} registros")
-    print(f"Test set: {len(X_test)} registros")
-    
-    # Entrenar modelo
-    modelo = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=10,
-        min_samples_split=5,
-        random_state=42,
-        n_jobs=-1
-    )
-    
-    # Validacion cruzada
-    print("\nValidacion cruzada (5-fold)...")
-    scores = cross_val_score(modelo, X_train, y_train, cv=5, scoring='f1')
-    print(f"F1-Score: {scores.mean():.3f} (+/- {scores.std()*2:.3f})")
-    
-    # Entrenar modelo final
-    modelo.fit(X_train, y_train)
-    
-    # Evaluar en test
-    y_pred = modelo.predict(X_test)
-    
-    print("\n" + "="*50)
-    print("RESULTADOS EN TEST SET")
-    print("="*50)
-    print("\nReporte de Clasificacion:")
-    print(classification_report(y_test, y_pred, target_names=["NO_REGAR", "REGAR"]))
-    
-    print("\nMatriz de Confusion:")
-    print(confusion_matrix(y_test, y_pred))
-    
-    return modelo
-
-
-def analizar_importancia(modelo, features):
-    """Muestra importancia de cada feature"""
-    importancias = pd.DataFrame({
-        'feature': features,
-        'importancia': modelo.feature_importances_
-    }).sort_values('importancia', ascending=False)
-    
-    print("\n" + "="*50)
-    print("IMPORTANCIA DE VARIABLES")
-    print("="*50)
-    print(importancias.to_string(index=False))
-    
-    return importancias
-
-
-def guardar_modelo(modelo, features):
-    """Guarda el modelo entrenado"""
-    modelo_data = {
-        'modelo': modelo,
-        'features': features
-    }
-    
-    joblib.dump(modelo_data, "models/modelo_riego.pkl")
-    print(f"\nModelo guardado en: models/modelo_riego.pkl")
-
-
-def main():
-    # Cargar datos
-    df = cargar_datos()
-    
-    # Preparar features
-    X, y, features = preparar_features(df)
-    
-    # Entrenar
-    modelo = entrenar_modelo(X, y)
-    
-    # Analizar
-    analizar_importancia(modelo, features)
-    
-    # Guardar
-    guardar_modelo(modelo, features)
-    
-    print("\n" + "="*50)
-    print("ENTRENAMIENTO COMPLETADO")
-    print("="*50)
-
-
-if __name__ == "__main__":
-    main()
+RF_PARAMS = {
+    "n_estimators": 100,        # Número de árboles
+    "max_depth": 10,            # Profundidad máxima
+    "min_samples_split": 5,     # Mínimo para dividir nodo
+    "min_samples_leaf": 2,      # Mínimo en hojas
+    "random_state": 42,         # Reproducibilidad
+    "n_jobs": -1,               # Usar todos los cores
+    "class_weight": "balanced"  # Manejar desbalance de clases
+}
 ```
 
-Ejecutar:
-```bash
-python 02_entrenar_modelo.py
+---
+
+## Resultados del Entrenamiento
+
+### Distribución de Clases
+
+| Clase | Cantidad | Porcentaje |
+|-------|----------|------------|
+| NO_REGAR | 15,584 | 89.4% |
+| REGAR | 1,840 | 10.6% |
+
+### Métricas
+
 ```
-
-Salida esperada:
-```
-Dataset cargado: 17520 registros
-
-Train set: 14016 registros
-Test set: 3504 registros
-
-Validacion cruzada (5-fold)...
-F1-Score: 0.892 (+/- 0.023)
-
-==================================================
-RESULTADOS EN TEST SET
-==================================================
-
-Reporte de Clasificacion:
               precision    recall  f1-score   support
 
-   NO_REGAR       0.91      0.94      0.93      2456
-      REGAR       0.86      0.79      0.82      1048
+    NO_REGAR       1.00      1.00      1.00      3117
+       REGAR       0.99      0.99      0.99       368
 
-    accuracy                           0.90      3504
-
-==================================================
-IMPORTANCIA DE VARIABLES
-==================================================
-       feature  importancia
-  humedad_suelo        0.42
-    temperatura        0.23
-          hora         0.14
- precipitacion        0.11
-humedad_ambiente       0.06
-           mes         0.04
-
-Modelo guardado en: models/modelo_riego.pkl
+    accuracy                           1.00      3485
 ```
+
+### Matriz de Confusión
+
+```
+                 Predicho
+              NO_REGAR  REGAR
+Real NO_REGAR    3113       4
+Real REGAR          2     366
+```
+
+### Validación Cruzada (5-fold)
+
+| Métrica | Media | Desv. Estándar |
+|---------|-------|----------------|
+| Accuracy | 0.998 | ±0.001 |
+| F1-Score | 0.992 | ±0.005 |
+| Precision | 0.992 | ±0.009 |
+| Recall | 0.993 | ±0.009 |
 
 ---
 
-### Paso 5: Crear API Flask
+## API Flask
 
-**Archivo:** `python/03_api_flask.py`
+### Configuración
 
-```python
-"""
-API Flask para servir predicciones del modelo de riego
-"""
+- **Puerto:** 5001 (evita conflicto con AirPlay en macOS)
+- **Framework:** Flask
+- **Modelo:** Cargado al iniciar desde `models/modelo_riego.joblib`
 
-from flask import Flask, request, jsonify
-import joblib
-import numpy as np
+### Endpoints
 
-app = Flask(__name__)
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/` | Información de la API |
+| GET | `/health` | Estado del servicio |
+| GET | `/features` | Features requeridas |
+| POST | `/predict` | Hacer predicción |
+| POST | `/predict/batch` | Predicción en lote |
+| GET | `/model/info` | Info del modelo |
 
-# Cargar modelo al iniciar
-print("Cargando modelo...")
-modelo_data = joblib.load("models/modelo_riego.pkl")
-MODELO = modelo_data["modelo"]
-FEATURES = modelo_data["features"]
-print(f"Modelo cargado. Features: {FEATURES}")
+### Ejemplo de Uso
 
-
-@app.route("/health", methods=["GET"])
-def health():
-    """Endpoint de salud"""
-    return jsonify({"status": "ok", "model": "loaded"})
-
-
-@app.route("/predict", methods=["POST"])
-def predict():
-    """
-    Endpoint de prediccion
-    
-    Espera JSON:
-    {
-        "humedad_suelo": 45.0,
-        "temperatura": 23.5,
-        "humedad_ambiente": 68.0,
-        "precipitacion": 0.0,
-        "hora": 8,
-        "mes": 6
-    }
-    
-    Retorna:
-    {
-        "decision": "REGAR",
-        "decision_int": 1,
-        "probabilidad": 0.87,
-        "confianza": 87
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        # Validar campos requeridos
-        for feature in FEATURES:
-            if feature not in data:
-                return jsonify({
-                    "error": f"Campo requerido: {feature}"
-                }), 400
-        
-        # Crear array de features en orden correcto
-        X = np.array([[data[f] for f in FEATURES]])
-        
-        # Predecir
-        prediccion = MODELO.predict(X)[0]
-        probabilidad = MODELO.predict_proba(X)[0]
-        
-        # Probabilidad de la clase predicha
-        prob_clase = probabilidad[prediccion]
-        
-        resultado = {
-            "decision": "REGAR" if prediccion == 1 else "NO_REGAR",
-            "decision_int": int(prediccion),
-            "probabilidad": round(float(prob_clase), 3),
-            "confianza": round(float(prob_clase) * 100, 1),
-            "inputs": data
-        }
-        
-        return jsonify(resultado)
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/features", methods=["GET"])
-def get_features():
-    """Retorna las features esperadas por el modelo"""
-    return jsonify({
-        "features": FEATURES,
-        "ejemplo": {
-            "humedad_suelo": 45.0,
-            "temperatura": 23.5,
-            "humedad_ambiente": 68.0,
-            "precipitacion": 0.0,
-            "hora": 8,
-            "mes": 6
-        }
-    })
-
-
-if __name__ == "__main__":
-    print("\n" + "="*50)
-    print("API de Prediccion de Riego")
-    print("="*50)
-    print(f"Endpoints:")
-    print(f"  GET  /health   - Estado del servicio")
-    print(f"  GET  /features - Features requeridas")
-    print(f"  POST /predict  - Hacer prediccion")
-    print("="*50 + "\n")
-    
-    app.run(host="0.0.0.0", port=5000, debug=True)
-```
-
-Ejecutar:
 ```bash
-python 03_api_flask.py
-```
+# Iniciar API
+cd python/
+uv run python 03_api_flask.py
 
-Probar con curl:
-```bash
-curl -X POST http://localhost:5000/predict \
+# Hacer predicción
+curl -X POST http://localhost:5001/predict \
   -H "Content-Type: application/json" \
   -d '{
     "humedad_suelo": 25,
-    "temperatura": 28,
-    "humedad_ambiente": 50,
+    "temperatura": 12,
+    "humedad_ambiente": 60,
     "precipitacion": 0,
-    "hora": 8,
-    "mes": 6
+    "prob_lluvia": 10,
+    "hora": 7,
+    "mes": 8
   }'
 ```
 
-Respuesta:
+### Respuesta
+
 ```json
 {
   "decision": "REGAR",
   "decision_int": 1,
-  "probabilidad": 0.87,
-  "confianza": 87.0,
-  "inputs": {...}
+  "probabilidad_regar": 0.978,
+  "probabilidad_no_regar": 0.022,
+  "confianza": 97.8,
+  "timestamp": "2026-01-23T22:23:43.059142"
 }
 ```
 
 ---
 
-### Paso 6: Integrar con Node-RED
+## Pruebas del Modelo
 
-Modificar el nodo "Modelo ML" en Node-RED para llamar a la API:
+| Escenario | Humedad | Condiciones | Decisión | Confianza |
+|-----------|---------|-------------|----------|-----------|
+| Suelo crítico | 15% | Sin lluvia | REGAR | 97.8% |
+| Suelo seco | 30% | Calor, sin lluvia | REGAR | 57.3% |
+| Seco + lluvia próxima | 32% | Prob lluvia 85% | NO_REGAR | 94.8% |
+| Suelo húmedo | 65% | Normal | NO_REGAR | 99.4% |
+| Lloviendo | 55% | Precipitación 5.5mm | NO_REGAR | 100% |
+| Post-lluvia | 75% | Recién llovió | NO_REGAR | 100% |
 
-1. Reemplazar el nodo `function` "Modelo ML (Decision)" por un `http request`
-2. O modificar la funcion para hacer HTTP request
+---
 
-**Nueva funcion para Node-RED:**
+## Integración con Node-RED
+
+El flujo de Node-RED llama a la API Flask cada 1 minuto:
+
+```
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│ Inject       │───▶│ Preparar     │───▶│ HTTP POST    │───▶│ Procesar     │
+│ cada 1 min   │    │ JSON         │    │ :5001/predict│    │ respuesta    │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+```
+
+El nodo "Preparar JSON" construye el payload:
 
 ```javascript
-// Obtener datos
-var sensores = flow.get('ultimosDatos') || {};
-var clima = flow.get('datosClima') || {};
-
-if (!sensores.humedad_suelo) {
-    node.status({fill:"yellow", shape:"ring", text:"Esperando datos"});
-    return null;
-}
-
-// Preparar request para API Flask
-msg.url = "http://localhost:5000/predict";
-msg.method = "POST";
-msg.headers = {"Content-Type": "application/json"};
-
-var now = new Date();
 msg.payload = {
     humedad_suelo: sensores.humedad_suelo,
     temperatura: sensores.temperatura,
     humedad_ambiente: sensores.humedad_ambiente,
     precipitacion: clima.precipitacion_actual || 0,
-    hora: now.getHours(),
-    mes: now.getMonth() + 1
+    prob_lluvia: clima.max_prob_lluvia_24h || 0,
+    hora: new Date().getHours(),
+    mes: new Date().getMonth() + 1
 };
-
-return msg;
 ```
 
 ---
 
-## Verificacion
+## Archivos
 
-1. API Flask corriendo: `http://localhost:5000/health`
-2. Node-RED llamando a la API
-3. ESP32 recibiendo decisiones del modelo ML real
+```
+python/
+├── 01_descargar_datos.py      # Descarga datos Open-Meteo + simula humedad
+├── 02_entrenar_modelo.py      # Entrena Random Forest
+├── 03_api_flask.py            # API REST
+├── pyproject.toml             # Dependencias (uv)
+├── dataset/
+│   ├── datos_historicos_jerusalen.csv  # 17,424 registros
+│   └── parametros_riego.txt            # Parámetros FAO
+└── models/
+    ├── modelo_riego.joblib    # Modelo serializado
+    └── metricas.txt           # Métricas de evaluación
+```
+
+---
+
+## Ejecución
+
+```bash
+cd python/
+
+# 1. Descargar datos (solo primera vez o para re-entrenar)
+uv run python 01_descargar_datos.py
+
+# 2. Entrenar modelo (solo primera vez o para re-entrenar)
+uv run python 02_entrenar_modelo.py
+
+# 3. Iniciar API (siempre que se use el sistema)
+uv run python 03_api_flask.py
+```
 
 ---
 
 ## Siguiente Paso
 
-Continuar con `07_PRUEBAS.md` para verificar el funcionamiento end-to-end.
+Ver `07_PRUEBAS.md` para verificar el funcionamiento end-to-end del sistema.
