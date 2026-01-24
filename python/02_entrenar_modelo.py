@@ -70,7 +70,7 @@ RF_PARAMS = {
 
 def cargar_datos() -> pd.DataFrame:
     """Carga el dataset de entrenamiento."""
-    archivo = DATA_DIR / "datos_historicos_paute.csv"
+    archivo = DATA_DIR / "datos_historicos_jerusalen.csv"
 
     if not archivo.exists():
         raise FileNotFoundError(

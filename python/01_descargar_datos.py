@@ -4,7 +4,7 @@
 Sistema IoT de Riego Inteligente para Pastizales
 UTPL - Maestria en IA Aplicada
 
-Este script descarga datos climaticos historicos de Paute, Ecuador
+Este script descarga datos climaticos historicos de Jerusalen, Ecuador
 usando la API de Open-Meteo y genera etiquetas para entrenamiento.
 
 Fuentes cientificas:
@@ -26,9 +26,9 @@ from pathlib import Path
 # CONFIGURACION
 # =============================================================================
 
-# Coordenadas de Paute, Azuay, Ecuador
-LATITUD = -2.78
-LONGITUD = -78.76
+# Coordenadas de Jerusalén, Azuay, Ecuador
+LATITUD = -2.690425
+LONGITUD = -78.935117
 TIMEZONE = "America/Guayaquil"
 
 # Directorio de salida
@@ -90,7 +90,7 @@ def descargar_datos_historicos(fecha_inicio: str, fecha_fin: str) -> dict:
     }
 
     print(f"Descargando datos desde {fecha_inicio} hasta {fecha_fin}...")
-    print(f"Ubicacion: Paute, Ecuador ({LATITUD}, {LONGITUD})")
+    print(f"Ubicacion: Jerusalen, Ecuador ({LATITUD}, {LONGITUD})")
 
     response = requests.get(url, params=params, timeout=60)
 
@@ -402,7 +402,7 @@ def main():
         mostrar_estadisticas(df_clean)
 
         # Guardar
-        output_file = OUTPUT_DIR / "datos_historicos_paute.csv"
+        output_file = OUTPUT_DIR / "datos_historicos_jerusalen.csv"
         df_clean.to_csv(output_file, index=False)
         print(f"\nDataset guardado en: {output_file}")
 
