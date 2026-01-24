@@ -1,0 +1,13 @@
+METRICAS DEL MODELO DE RIEGO
+========================================
+Algoritmo: Random Forest Classifier
+Features: ['humedad_suelo', 'temperatura', 'humedad_ambiente', 'precipitacion', 'prob_lluvia', 'hora', 'mes']
+
+Metricas en Test Set:
+  accuracy: 0.9989
+  precision: 0.9905
+  recall: 1.0000
+  f1: 0.9952
+  roc_auc: 1.0000
+  cv_accuracy_mean: 0.9983
+  cv_accuracy_std: 0.0010
