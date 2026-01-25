@@ -330,7 +330,7 @@
         "libs": [],
         "x": 800,
         "y": 440,
-        "wires": [["switch_decision", "debug_ml", "function_decision_influx"]]
+        "wires": [["switch_decision", "debug_ml", "function_decision_influx", "function_preparar_opcua"]]
     },
     {
         "id": "debug_ml",
@@ -492,6 +492,77 @@
         "broker": "mqtt_broker_hivemq",
         "x": 430,
         "y": 650,
+        "wires": []
+    },
+    {
+        "id": "comment_opcua",
+        "type": "comment",
+        "z": "flow_riego",
+        "name": "🏭 CONTROL FACTORY I/O (OPC-UA → CODESYS)",
+        "info": "Envía la decisión del modelo ML a CODESYS via OPC-UA para controlar la válvula en Factory I/O",
+        "x": 250,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "opcua_endpoint",
+        "type": "OpcUa-Endpoint",
+        "endpoint": "opc.tcp://localhost:4840",
+        "secpol": "None",
+        "secmode": "None",
+        "login": false,
+        "credentials": {}
+    },
+    {
+        "id": "function_preparar_opcua",
+        "type": "function",
+        "z": "flow_riego",
+        "name": "🏭 Preparar OPC-UA",
+        "func": "var decision = msg.decision;\n\nmsg.topic = \"ns=4;s=|var|CODESYS Control Win V3 x64.Application.GVL_Riego.bOrdenRegar;datatype=Boolean\";\nmsg.payload = (decision === \"REGAR\");\n\nnode.status({fill: decision === \"REGAR\" ? \"blue\" : \"green\", shape:\"dot\", text: decision});\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 190,
+        "y": 820,
+        "wires": [["opcua_client_write"]]
+    },
+    {
+        "id": "opcua_client_write",
+        "type": "OpcUa-Client",
+        "z": "flow_riego",
+        "endpoint": "opcua_endpoint",
+        "action": "write",
+        "deadbandtype": "a",
+        "deadbandvalue": 1,
+        "time": 10,
+        "timeUnit": "s",
+        "certificate": "n",
+        "localfile": "",
+        "localkeyfile": "",
+        "securitymode": "None",
+        "securitypolicy": "None",
+        "folderName4PKI": "",
+        "name": "🏭 OPC-UA CODESYS",
+        "x": 430,
+        "y": 820,
+        "wires": [["debug_opcua"]]
+    },
+    {
+        "id": "debug_opcua",
+        "type": "debug",
+        "z": "flow_riego",
+        "name": "🔍 Ver respuesta OPC-UA",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 670,
+        "y": 820,
         "wires": []
     }
 ]
