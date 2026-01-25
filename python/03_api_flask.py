@@ -185,8 +185,10 @@ def predict():
                     }
                 ), 400
 
-        # Crear array de features en orden correcto
-        X = np.array([[float(data[f]) for f in features]])
+        # Crear DataFrame con nombres de features (evita warning de sklearn)
+        import pandas as pd
+
+        X = pd.DataFrame([[float(data[f]) for f in features]], columns=features)
 
         # Predecir
         prediccion = modelo.predict(X)[0]
