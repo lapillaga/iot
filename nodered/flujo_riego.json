@@ -396,7 +396,7 @@
         "outputs": 2,
         "x": 610,
         "y": 440,
-        "wires": [["function_preparar_mqtt"], []]
+        "wires": [["function_preparar_mqtt"], ["function_preparar_mqtt"]]
     },
     {
         "id": "function_preparar_mqtt",
