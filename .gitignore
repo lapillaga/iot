@@ -13,9 +13,9 @@ venv/
 env/
 .venv/
 
-# Models (archivos grandes)
-*.pkl
-*.joblib
+# Models grandes (descomentar si el modelo supera 50MB)
+# *.pkl
+# *.joblib
 
 # OS
 .DS_Store
