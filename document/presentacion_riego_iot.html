@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema IoT Inteligente para Riego de Potreros - Luis Pillaga</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.css">
+    <style>
+        :root {
+            --utpl-blue: #1e3a5f;
+            --utpl-gold: #f5b120;
+        }
+        
+        /* Reset base */
+        .reveal { background: #ffffff; }
+        .reveal .slides { text-align: left; }
+        
+        /* Tipografía para fondo blanco */
+        .reveal h1 { font-size: 1.4em; font-weight: 600; color: var(--utpl-blue); }
+        .reveal h2 { font-size: 1.1em; font-weight: 600; color: var(--utpl-blue); margin-bottom: 0.4em; }
+        .reveal h3 { font-size: 0.85em; font-weight: bold; color: var(--utpl-blue); margin: 0.2em 0; }
+        .reveal p, .reveal li { font-size: 0.65em; line-height: 1.4; color: #333; }
+        .reveal ul { margin-left: 1em; }
+        .reveal li { margin-bottom: 0.3em; }
+        .reveal strong { color: var(--utpl-blue); }
+        .reveal em { color: #555; }
+        .reveal code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 0.9em; }
+        
+        /* Línea amarilla bajo h2 */
+        .reveal h2::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: var(--utpl-gold);
+            margin-top: 5px;
+        }
+
+        /* Padding inferior */
+        .reveal .slides section { padding-bottom: 20px !important; }
+        
+        /* === COVER SLIDE === */
+        .cover-slide { background: var(--utpl-blue) !important; }
+        .cover-slide h1, .cover-slide p { color: #fff !important; }
+        .cover-slide h2 { color: var(--utpl-gold) !important; }
+        .cover-slide h2::after { display: none !important; }
+        .cover-slide .subtitle { color: #aaa !important; font-size: 0.9em; }
+        .cover-slide .author-info p { color: #ccc !important; font-size: 0.85em; margin: 5px 0; }
+        .cover-slide strong { color: var(--utpl-gold) !important; }
+        
+        .gold-box {
+            background: var(--utpl-gold);
+            color: var(--utpl-blue) !important;
+            padding: 15px 25px;
+            display: inline-block;
+        }
+        .gold-box p { color: var(--utpl-blue) !important; margin: 0; font-weight: bold; }
+
+        /* === FINAL SLIDE === */
+        .final-slide { background: var(--utpl-blue) !important; }
+        .final-slide h1, .final-slide h2, .final-slide h3, .final-slide p { color: #fff !important; }
+        .final-slide h2::after { display: none; }
+        .final-slide .author-info p { color: #ccc !important; }
+
+        /* === CAJAS === */
+        .highlight-box {
+            background: rgba(30, 58, 95, 0.08);
+            border-left: 3px solid var(--utpl-blue);
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        .warning-box {
+            background: rgba(245, 177, 32, 0.12);
+            border-left: 3px solid var(--utpl-gold);
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        .danger-box {
+            background: rgba(30, 58, 95, 0.08);
+            border-left: 3px solid var(--utpl-blue);
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        .success-box {
+            background: rgba(245, 177, 32, 0.12);
+            border-left: 3px solid var(--utpl-gold);
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+
+        /* === LAYOUTS === */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .phase-card {
+            background: rgba(30, 58, 95, 0.05);
+            border: 1px solid rgba(30, 58, 95, 0.15);
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+        .phase-title {
+            font-weight: bold;
+            color: var(--utpl-blue);
+            margin-bottom: 6px;
+            font-size: 0.8em;
+        }
+
+        /* === AGENDA === */
+        .agenda-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        .agenda-column {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .agenda-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .agenda-number {
+            background: var(--utpl-gold);
+            color: var(--utpl-blue);
+            font-weight: bold;
+            font-size: 1.1em;
+            padding: 8px 14px;
+            min-width: 45px;
+            text-align: center;
+        }
+        .agenda-content {
+            flex: 1;
+        }
+        .agenda-text {
+            color: var(--utpl-blue);
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+        .agenda-line {
+            border-bottom: 2px dotted var(--utpl-blue);
+            margin-top: 8px;
+            position: relative;
+            opacity: 0.4;
+        }
+        .agenda-dot {
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 8px;
+            height: 8px;
+            background: var(--utpl-blue);
+            border-radius: 50%;
+        }
+
+        /* === TABLA === */
+        .reveal table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.6em;
+            margin: 8px 0;
+        }
+        .reveal th {
+            background: var(--utpl-blue);
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .reveal td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .reveal tr:nth-child(even) { background: #f8f9fa; }
+
+        /* === STATS === */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: rgba(30, 58, 95, 0.05);
+            border: 2px solid var(--utpl-blue);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--utpl-blue);
+        }
+        .stat-card .desc {
+            font-size: 0.55em;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        /* === DIAGRAMA === */
+        .arch-diagram {
+            background: #f8f9fa;
+            border: 1px solid var(--utpl-blue);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.5em;
+            line-height: 1.3;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        /* === FLOW STEPS === */
+        .flow-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .flow-step {
+            text-align: center;
+            flex: 1;
+        }
+        .flow-step .icon {
+            background: var(--utpl-blue);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 6px;
+            font-size: 1em;
+            font-weight: bold;
+        }
+        .flow-step .label {
+            font-size: 0.55em;
+            color: var(--utpl-blue);
+            font-weight: 600;
+        }
+        .flow-arrow {
+            color: var(--utpl-gold);
+            font-size: 1.2em;
+            margin: 0 3px;
+        }
+
+        /* Barra de progreso */
+        .reveal .progress {
+            height: 5px;
+            background: rgba(30, 58, 95, 0.2);
+            z-index: 200;
+        }
+        .reveal .progress span {
+            background: var(--utpl-gold);
+        }
+
+        /* Número de slide */
+        .reveal .slide-number {
+            background: var(--utpl-blue);
+            color: white;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            bottom: 15px;
+            right: 15px;
+        }
+
+        /* Flechas de navegación */
+        .reveal .controls {
+            bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- SLIDE 1: Portada -->
+            <section class="cover-slide" data-state="cover" data-transition="fade">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; height: 100%; padding: 10px 30px;">
+                    <!-- Columna izquierda -->
+                    <div style="flex: 1; padding-top: 20px;">
+                        <h1 style="font-size: 1.2em; margin: 0 0 10px 0; font-weight: 600;">IA Aplicada a la Industria 4.0</h1>
+                        <h2 style="font-size: 1.0em; margin: 0; font-weight: 600; color: var(--utpl-gold) !important;">Sistema IoT Inteligente para Riego de Potreros</h2>
+                        
+                        <div style="position: absolute; bottom: 80px; left: 30px;">
+                            <p style="margin: 8px 0; font-size: 0.7em;">Estudiante: Pillaga Zhagñay, Luis Antonio</p>
+                            <p style="margin: 8px 0; font-size: 0.7em;">Docente: Castillo Calvas, Tuesman Daniel</p>
+                            <p style="margin: 8px 0; font-size: 0.7em;">Fecha: Enero 2026</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Columna derecha -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 60px;">
+                        <img src="figures/logo_utpl.jpg" alt="UTPL" style="width: 180px; margin-bottom: 15px;">
+                        <div class="gold-box" style="text-align: center; padding: 12px 20px;">
+                            <p style="font-size: 0.75em; margin: 0;">Maestría en Inteligencia Artificial<br>Aplicada</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Franja amarilla inferior -->
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 6px; background: var(--utpl-gold);"></div>
+                <!-- Acento amarillo pequeño izquierda -->
+                <div style="position: absolute; bottom: 50px; left: 30px; width: 60px; height: 3px; background: var(--utpl-gold);"></div>
+            </section>
+
+            <!-- SLIDE 2: Agenda -->
+            <section data-transition="zoom">
+                <h2>Agenda</h2>
+                <div class="agenda-container">
+                    <div class="agenda-column">
+                        <div class="agenda-item">
+                            <span class="agenda-number">01</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Definición del Problema</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">02</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Arquitectura del Sistema</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">03</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Modelo de Machine Learning</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">04</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Implementación IoT</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="agenda-column">
+                        <div class="agenda-item">
+                            <span class="agenda-number">05</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Exploración: Integración Industrial</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">06</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Visualización y Monitoreo</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">07</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Resultados y Pruebas</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">08</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Conclusiones</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 3: Problema -->
+            <section data-transition="slide">
+                <h2>1. Definición del Problema</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Contexto: Biblián, Cañar, Ecuador</h3>
+                        <ul>
+                            <li><strong>Ubicación:</strong> Sierra ecuatoriana </li>
+                            <li><strong>Altitud:</strong> ~2,800 msnm</li>
+                            <li><strong>Actividad:</strong> Ganadería de pastoreo</li>
+                        </ul>
+                        
+                        <h3 style="margin-top: 15px;">Problemática Identificada</h3>
+                        <ul>
+                            <li>Sequías estacionales deterioran pastos</li>
+                            <li>Riego manual sin criterio técnico</li>
+                            <li>Desperdicio de agua por riego innecesario</li>
+                            <li>Falta de monitoreo en tiempo real</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="highlight-box">
+                            <h3 style="margin-top:0;">Objetivo General</h3>
+                            <p>Desarrollar un sistema IoT inteligente que automatice las decisiones de riego utilizando Machine Learning y datos climáticos en tiempo real.</p>
+                        </div>
+                        <div class="success-box" style="margin-top: 12px;">
+                            <h3 style="margin-top:0;">Beneficios Esperados</h3>
+                            <ul style="margin-bottom: 0;">
+                                <li>Reducir consumo de agua hasta 30%</li>
+                                <li>Mejorar calidad del pasto</li>
+                                <li>Automatizar decisiones basadas en datos</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 4: Arquitectura -->
+            <section data-transition="slide">
+                <h2>2. Arquitectura del Sistema</h2>
+                <div style="text-align: center; margin-top: -35px;">
+                    <img src="figures/arch.png" alt="Arquitectura C4" style="max-height: 560px; max-width: 100%;">
+                </div>
+            </section>
+
+            <!-- SLIDE 5: Stack Tecnológico -->
+            <section data-transition="slide">
+                <h2>Stack Tecnológico</h2>
+                <div class="two-columns">
+                    <div>
+                        <table style="font-size: 0.55em;">
+                            <tr><th>Capa</th><th>Tecnología</th><th>Protocolo</th></tr>
+                            <tr><td><strong>Simulación</strong></td><td>Wokwi + ESP32</td><td>WiFi</td></tr>
+                            <tr><td><strong>Mensajería</strong></td><td>HiveMQ Cloud</td><td>MQTT:8883</td></tr>
+                            <tr><td><strong>Orquestación</strong></td><td>Node-RED</td><td>HTTP/MQTT</td></tr>
+                            <tr><td><strong>ML</strong></td><td>Flask + scikit-learn</td><td>HTTP:5001</td></tr>
+                        </table>
+                        <table style="font-size: 0.55em; margin-top: 8px;">
+                            <tr><th>Capa</th><th>Tecnología</th><th>Protocolo</th></tr>
+                            <tr><td><strong>Clima</strong></td><td>Open-Meteo API</td><td>HTTPS</td></tr>
+                            <tr><td><strong>Base Datos</strong></td><td>InfluxDB Cloud</td><td>Flux</td></tr>
+                            <tr><td><strong>Industrial</strong></td><td>CODESYS + Factory I/O</td><td>OPC-UA</td></tr>
+                            <tr><td><strong>Dashboard</strong></td><td>Grafana Cloud</td><td>InfluxDB</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>¿Por qué estas tecnologías?</h3>
+                        <div class="highlight-box">
+                            <ul style="margin-bottom: 0; font-size: 0.6em;">
+                                <li><strong>Costo cero:</strong> HiveMQ, InfluxDB, Grafana tienen planes gratuitos</li>
+                                <li><strong>Seguridad:</strong> TLS/SSL en todas las comunicaciones</li>
+                                <li><strong>Extensible:</strong> Posibilidad de integración industrial (OPC-UA)</li>
+                                <li><strong>Escalable:</strong> Arquitectura modular y desacoplada</li>
+                            </ul>
+                        </div>
+                        <div class="warning-box" style="margin-top: 10px;">
+                            <ul style="margin-bottom: 0; font-size: 0.6em;">
+                                <li><strong>Simulación:</strong> Wokwi y Factory I/O permiten probar sin hardware</li>
+                                <li><strong>Tiempo real:</strong> Respuesta en segundos</li>
+                                <li><strong>ML integrado:</strong> API REST facilita integración del modelo</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 6: ML Datos -->
+            <section data-transition="slide">
+                <h2>3. Modelo de Machine Learning - Datos</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Recopilación de Datos</h3>
+                        <div class="phase-card" style="padding: 8px 10px;">
+                            <ul style="margin-bottom: 0; font-size: 0.6em;">
+                                <li><strong>Fuente:</strong> Open-Meteo Historical API</li>
+                                <li><strong>Ubicación:</strong> Biblián, Ecuador</li>
+                                <li><strong>Período:</strong> 2 años (2024-2026)</li>
+                                <li><strong>Registros:</strong> 17,424 horarios</li>
+                            </ul>
+                        </div>
+                        
+                        <h3 style="margin-top: 8px;">Features (7 variables)</h3>
+                        <table style="font-size: 0.55em;">
+                            <tr><th>Variable</th><th>Fuente</th></tr>
+                            <tr><td><code>humedad_suelo</code></td><td>Sensor (0-100%)</td></tr>
+                            <tr><td><code>temperatura</code></td><td>DHT22 (°C)</td></tr>
+                            <tr><td><code>humedad_ambiente</code></td><td>DHT22 (%)</td></tr>
+                            <tr><td><code>prob_lluvia</code></td><td>Open-Meteo</td></tr>
+                            <tr><td><code>precipitacion</code></td><td>Open-Meteo (mm)</td></tr>
+                            <tr><td><code>hora, mes</code></td><td>Sistema</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>Criterios de Etiquetado (FAO)</h3>
+                        <table style="font-size: 0.55em;">
+                            <tr><th>Condición</th><th>Decisión</th></tr>
+                            <tr><td>Humedad &lt; 20%</td><td><strong>REGAR</strong></td></tr>
+                            <tr><td>Humedad &lt; 35% y lluvia &gt; 70%</td><td>NO_REGAR</td></tr>
+                            <tr><td>Humedad &lt; 40% y temp &gt; 25°C</td><td><strong>REGAR</strong></td></tr>
+                            <tr><td>Humedad &lt; 45% y hora 5-8 AM</td><td><strong>REGAR</strong></td></tr>
+                            <tr><td>Humedad ≥ 45%</td><td>NO_REGAR</td></tr>
+                        </table>
+                        
+                        <h3 style="margin-top: 8px;">Distribución de Clases</h3>
+                        <div class="two-columns" style="gap: 8px;">
+                            <div class="phase-card" style="text-align: center; padding: 8px;">
+                                <div style="font-size: 1.1em; font-weight: bold; color: var(--utpl-blue);">89.4%</div>
+                                <div style="font-size: 0.55em; color: #666;">NO_REGAR (15,584)</div>
+                            </div>
+                            <div class="phase-card" style="text-align: center; padding: 8px;">
+                                <div style="font-size: 1.1em; font-weight: bold; color: var(--utpl-blue);">10.6%</div>
+                                <div style="font-size: 0.55em; color: #666;">REGAR (1,840)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 7: ML Resultados -->
+            <section data-transition="slide">
+                <h2>Resultados del Modelo Random Forest</h2>
+                <div class="stats-grid" style="margin: 10px 0;">
+                    <div class="stat-card" style="padding: 8px;">
+                        <div class="value" style="font-size: 1.2em;">99.8%</div>
+                        <div class="desc">Accuracy</div>
+                    </div>
+                    <div class="stat-card" style="padding: 8px;">
+                        <div class="value" style="font-size: 1.2em;">98.9%</div>
+                        <div class="desc">Precision</div>
+                    </div>
+                    <div class="stat-card" style="padding: 8px;">
+                        <div class="value" style="font-size: 1.2em;">99.5%</div>
+                        <div class="desc">Recall</div>
+                    </div>
+                    <div class="stat-card" style="padding: 8px;">
+                        <div class="value" style="font-size: 1.2em;">99.2%</div>
+                        <div class="desc">F1-Score</div>
+                    </div>
+                </div>
+                
+                <div class="two-columns">
+                    <div>
+                        <h3>Importancia de Variables</h3>
+                        <table style="font-size: 0.55em;">
+                            <tr><th>Variable</th><th>Importancia</th></tr>
+                            <tr><td>humedad_suelo</td><td><strong>73.7%</strong></td></tr>
+                            <tr><td>mes</td><td>10.4%</td></tr>
+                            <tr><td>prob_lluvia</td><td>6.5%</td></tr>
+                            <tr><td>hora</td><td>4.3%</td></tr>
+                            <tr><td>temperatura</td><td>1.9%</td></tr>
+                            <tr><td>humedad_ambiente</td><td>1.7%</td></tr>
+                            <tr><td>precipitacion</td><td>1.5%</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>Matriz de Confusión</h3>
+                        <img src="figures/matriz_confusion.png" alt="Matriz de Confusión" style="max-height: 140px;">
+                        <p style="font-size: 0.5em; margin: 5px 0 0 0; color: #555;">
+                            <strong>4 falsos positivos:</strong> regó sin necesidad<br>
+                            <strong>2 falsos negativos:</strong> no regó cuando debía
+                        </p>
+                        <div class="success-box" style="margin-top: 8px; padding: 8px;">
+                            <p style="margin: 0; font-size: 0.6em;"><strong>Solo 6 errores</strong> en 3,485 predicciones</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 8: API Flask -->
+            <section data-transition="slide">
+                <h2>API REST para Predicciones (Flask)</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Endpoints</h3>
+                        <table style="font-size: 0.55em;">
+                            <tr><th>Método</th><th>Endpoint</th><th>Función</th></tr>
+                            <tr><td>POST</td><td><code>/predict</code></td><td>Predicción</td></tr>
+                            <tr><td>GET</td><td><code>/model/info</code></td><td>Info modelo</td></tr>
+                        </table>
+                        
+                        <h3 style="margin-top: 8px;">Request</h3>
+                        <div class="phase-card" style="font-family: monospace; font-size: 0.5em; padding: 8px;">
+POST /predict<br>
+{"humedad_suelo": 25, "temperatura": 12,<br>
+&nbsp;"humedad_ambiente": 60, "precipitacion": 0,<br>
+&nbsp;"prob_lluvia": 10, "hora": 7, "mes": 8}
+                        </div>
+                        
+                        <h3 style="margin-top: 8px;">Response</h3>
+                        <div class="phase-card" style="font-family: monospace; font-size: 0.5em; padding: 8px;">
+{"decision": "REGAR",<br>
+&nbsp;"probabilidad_regar": 0.978,<br>
+&nbsp;"confianza": 97.8}
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Parámetros Random Forest</h3>
+                        <div class="phase-card" style="font-size: 0.55em; padding: 8px;">
+                            <ul style="margin-bottom: 0;">
+                                <li><code>n_estimators</code>: 100 árboles</li>
+                                <li><code>max_depth</code>: 10 niveles</li>
+                                <li><code>class_weight</code>: balanced</li>
+                                <li><code>random_state</code>: 42</li>
+                            </ul>
+                        </div>
+                        
+                        <h3 style="margin-top: 8px;">Ejecución</h3>
+                        <div class="phase-card" style="font-family: monospace; font-size: 0.5em; padding: 8px;">
+cd python/<br>
+uv run python 03_api_flask.py<br>
+# Servidor en http://localhost:5001
+                        </div>
+                        
+                        <div class="highlight-box" style="margin-top: 8px; padding: 8px;">
+                            <p style="margin: 0; font-size: 0.55em;"><strong>Latencia:</strong> ~5ms por predicción</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 9: IoT Wokwi -->
+            <section data-transition="slide">
+                <h2>4. Implementación IoT - Wokwi (ESP32)</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Hardware Simulado</h3>
+                        <table style="font-size: 0.55em;">
+                            <tr><th>Componente</th><th>Función</th><th>Pin</th></tr>
+                            <tr><td>ESP32 DevKit</td><td>MCU + WiFi</td><td>-</td></tr>
+                            <tr><td>DHT22</td><td>Temp + Humedad</td><td>GPIO 15</td></tr>
+                            <tr><td>Potenciómetro</td><td>Humedad suelo</td><td>GPIO 34</td></tr>
+                            <tr><td>LED Verde/Rojo</td><td>Estado válvula</td><td>GPIO 2/4</td></tr>
+                        </table>
+                        
+                        <h3 style="margin-top: 8px;">Topics MQTT</h3>
+                        <div class="phase-card" style="font-size: 0.55em; padding: 8px;">
+                            <ul style="margin-bottom: 0;">
+                                <li><code>pastizal/sensores</code> - Datos</li>
+                                <li><code>pastizal/valvula/control</code> - Comando</li>
+                                <li><code>pastizal/prediccion</code> - Decisión ML</li>
+                            </ul>
+                        </div>
+                        
+                        <h3 style="margin-top: 8px;">Librerías</h3>
+                        <div class="phase-card" style="font-size: 0.55em; padding: 8px;">
+                            <code>WiFiClientSecure</code>, <code>PubSubClient</code>, <code>DHTesp</code>, <code>ArduinoJson</code>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Mensaje JSON (sensores)</h3>
+                        <div class="phase-card" style="font-family: monospace; font-size: 0.5em; padding: 8px;">
+{"humedad_suelo": 45.2,<br>
+&nbsp;"temperatura": 11.5,<br>
+&nbsp;"humedad_ambiente": 68.0,<br>
+&nbsp;"valvula": "OFF"}
+                        </div>
+                        
+                        <h3 style="margin-top: 8px;">Conexión HiveMQ</h3>
+                        <div class="phase-card" style="font-size: 0.55em; padding: 8px;">
+                            <ul style="margin-bottom: 0;">
+                                <li><strong>Broker:</strong> *.hivemq.cloud</li>
+                                <li><strong>Puerto:</strong> 8883 (TLS)</li>
+                                <li><strong>Intervalo:</strong> 3 segundos</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="highlight-box" style="margin-top: 8px; padding: 8px;">
+                            <p style="margin: 0; font-size: 0.55em;"><strong>Simulador:</strong> wokwi.com (gratuito)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 10: Node-RED -->
+            <section data-transition="slide">
+                <h2>Orquestación con Node-RED</h2>
+                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                    <div style="width: 78%;">
+                        <img src="figures/nodered.png" alt="Flujos Node-RED" style="max-height: 540px; width: 100%; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="width: 22%;">
+                        <h3 style="font-size: 0.75em; margin-bottom: 6px;">Flujos</h3>
+                        <div class="highlight-box" style="padding: 5px 8px; margin-bottom: 5px;">
+                            <p style="margin: 0; font-size: 0.5em;"><strong>1. Sensores</strong></p>
+                            <p style="margin: 0; font-size: 0.45em; color: #555;">ESP32 → InfluxDB</p>
+                        </div>
+                        <div class="highlight-box" style="padding: 5px 8px; margin-bottom: 5px;">
+                            <p style="margin: 0; font-size: 0.5em;"><strong>2. Clima</strong></p>
+                            <p style="margin: 0; font-size: 0.45em; color: #555;">Open-Meteo (30 min)</p>
+                        </div>
+                        <div class="highlight-box" style="padding: 5px 8px; margin-bottom: 5px;">
+                            <p style="margin: 0; font-size: 0.5em;"><strong>3. Decisión ML</strong></p>
+                            <p style="margin: 0; font-size: 0.45em; color: #555;">Flask → ESP32 (1 min)</p>
+                        </div>
+                        <div class="highlight-box" style="padding: 5px 8px;">
+                            <p style="margin: 0; font-size: 0.5em;"><strong>4. Control Manual</strong></p>
+                            <p style="margin: 0; font-size: 0.45em; color: #555;">Abrir/Cerrar válvula</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 11: OPC-UA (Exploración) -->
+            <section data-transition="slide">
+                <h2>5. Exploración: Integración Industrial</h2>
+                <div class="warning-box" style="margin-bottom: 10px; padding: 8px;">
+                    <p style="margin: 0; font-size: 0.6em;"><strong>Contexto:</strong> Se exploró la integración con CODESYS + Factory I/O simulando un <strong>tanque de almacenamiento con control de nivel</strong>, pensando en sistemas de riego de mayor escala que requieran automatización industrial.</p>
+                </div>
+                <div class="two-columns">
+                    <div>
+                        <h3>CODESYS (PLC Virtual)</h3>
+                        <div class="phase-card" style="font-family: monospace; font-size: 0.5em; padding: 6px;">
+VAR_GLOBAL<br>
+&nbsp;&nbsp;bOrdenRegar: BOOL;<br>
+&nbsp;&nbsp;bValvulaDescarga: BOOL;<br>
+&nbsp;&nbsp;rNivelTanque: REAL;<br>
+END_VAR
+                        </div>
+                        
+                        <h3 style="margin-top: 6px;">Comunicación</h3>
+                        <div class="phase-card" style="padding: 6px; font-size: 0.55em;">
+                            <ul style="margin-bottom: 0;">
+                                <li><strong>Protocolo:</strong> OPC-UA</li>
+                                <li><strong>Endpoint:</strong> opc.tcp://localhost:4840</li>
+                                <li><strong>Node-RED:</strong> opcua-client</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Factory I/O (Simulación)</h3>
+                        <div class="phase-card" style="padding: 6px; font-size: 0.55em;">
+                            <p style="margin: 2px 0;"><strong>Escena:</strong> Level Control (tanque)</p>
+                            <p style="margin: 2px 0;"><strong>Driver:</strong> OPC-UA Client</p>
+                        </div>
+                        
+                        <h3 style="margin-top: 6px;">Flujo</h3>
+                        <div class="phase-card" style="padding: 6px; font-size: 0.55em;">
+                            <p style="margin: 0;">Node-RED → OPC-UA → CODESYS → Factory I/O</p>
+                            <p style="margin: 4px 0 0 0; font-size: 0.9em;">ML decide "REGAR" → PLC abre válvula → Tanque descarga</p>
+                        </div>
+                        
+                        <div class="highlight-box" style="margin-top: 6px; padding: 6px;">
+                            <p style="margin: 0; font-size: 0.5em;"><strong>Nota:</strong> En un sistema real de campo, el ESP32 controlaría directamente la electroválvula sin necesidad de PLC.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 12: Visualización -->
+            <section data-transition="slide">
+                <h2>6. Visualización y Monitoreo</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>InfluxDB Cloud</h3>
+                        <table style="font-size: 0.5em;">
+                            <tr><th>Measurement</th><th>Campos</th></tr>
+                            <tr><td>sensores_pastizal</td><td>humedad, temp, válvula</td></tr>
+                            <tr><td>clima_openmeteo</td><td>temp, prob_lluvia</td></tr>
+                            <tr><td>decisiones_riego</td><td>decision, confianza</td></tr>
+                        </table>
+                        
+                        <h3 style="margin-top: 8px;">Query Flux</h3>
+                        <div class="phase-card" style="font-family: monospace; font-size: 0.45em; padding: 6px;">
+from(bucket: "riego_iot")<br>
+&nbsp;|> range(start: -1h)<br>
+&nbsp;|> filter(fn: (r) =><br>
+&nbsp;&nbsp;&nbsp;r._measurement == "sensores_pastizal")
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Grafana Cloud</h3>
+                        <div class="phase-card" style="padding: 6px; font-size: 0.55em;">
+                            <p style="margin: 0 0 4px 0;"><strong>Paneles:</strong></p>
+                            <ul style="margin-bottom: 0;">
+                                <li>Gauge: Humedad suelo, Temperatura</li>
+                                <li>Stat: Estado válvula (ON/OFF)</li>
+                                <li>Gauge: Prob. lluvia 24h</li>
+                                <li>Time Series: Histórico + Decisiones</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="success-box" style="margin-top: 8px; padding: 6px;">
+                            <p style="margin: 0; font-size: 0.55em;"><strong>Actualización:</strong> Tiempo real (streaming)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 13: Resultados -->
+            <section data-transition="slide">
+                <h2>7. Resultados y Pruebas</h2>
+                <table style="font-size: 0.5em;">
+                    <tr>
+                        <th>Escenario</th>
+                        <th>Humedad</th>
+                        <th>Condiciones</th>
+                        <th>Decisión</th>
+                        <th>Confianza</th>
+                    </tr>
+                    <tr>
+                        <td>Suelo crítico</td>
+                        <td>15%</td>
+                        <td>Sin lluvia</td>
+                        <td><strong style="color: var(--utpl-gold);">REGAR</strong></td>
+                        <td>97.8%</td>
+                    </tr>
+                    <tr>
+                        <td>Seco + calor</td>
+                        <td>30%</td>
+                        <td>Temp alta</td>
+                        <td><strong style="color: var(--utpl-gold);">REGAR</strong></td>
+                        <td>57.3%</td>
+                    </tr>
+                    <tr>
+                        <td>Seco + lluvia próxima</td>
+                        <td>32%</td>
+                        <td>Prob lluvia 85%</td>
+                        <td><strong style="color: var(--utpl-blue);">NO_REGAR</strong></td>
+                        <td>94.8%</td>
+                    </tr>
+                    <tr>
+                        <td>Suelo húmedo</td>
+                        <td>65%</td>
+                        <td>Normal</td>
+                        <td><strong style="color: var(--utpl-blue);">NO_REGAR</strong></td>
+                        <td>99.4%</td>
+                    </tr>
+                    <tr>
+                        <td>Lloviendo</td>
+                        <td>55%</td>
+                        <td>Precipitación activa</td>
+                        <td><strong style="color: var(--utpl-blue);">NO_REGAR</strong></td>
+                        <td>100%</td>
+                    </tr>
+                </table>
+                
+                <div class="success-box" style="margin-top: 10px; padding: 8px;">
+                    <p style="margin: 0; font-size: 0.6em;"><strong>Resultado clave:</strong> El escenario 3 demuestra ahorro de agua - evita regar cuando va a llover, a diferencia de sistemas basados en reglas simples.</p>
+                </div>
+            </section>
+
+            <!-- SLIDE 14: Conclusiones -->
+            <section data-transition="zoom">
+                <h2>8. Conclusiones</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="success-box" style="padding: 8px;">
+                            <h3 style="margin-top:0; font-size: 0.8em;">Logros del Proyecto</h3>
+                            <ul style="margin-bottom: 0; font-size: 0.55em;">
+                                <li><strong>Modelo ML:</strong> 99.8% accuracy</li>
+                                <li><strong>IoT:</strong> ESP32 + MQTT + Node-RED</li>
+                                <li><strong>Clima:</strong> Open-Meteo API</li>
+                                <li><strong>Extensión:</strong> OPC-UA (interoperabilidad)</li>
+                                <li><strong>Monitoreo:</strong> InfluxDB + Grafana</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="highlight-box" style="margin-top: 8px; padding: 8px;">
+                            <h3 style="margin-top:0; font-size: 0.8em;">Aporte Principal</h3>
+                            <p style="margin-bottom: 0; font-size: 0.55em;">La <strong>humedad del suelo (73.7%)</strong> es la variable más importante, seguida del <strong>mes</strong> y <strong>prob. lluvia</strong>.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="phase-card" style="padding: 8px;">
+                            <h3 style="margin-top:0; font-size: 0.8em;">Trabajo Futuro</h3>
+                            <ul style="margin-bottom: 0; font-size: 0.55em;">
+                                <li>Hardware real (ESP32 físico)</li>
+                                <li>Más sensores (luz, viento)</li>
+                                <li>Modelo LSTM temporal</li>
+                                <li>App móvil + Alertas</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="warning-box" style="margin-top: 8px; padding: 8px;">
+                            <h3 style="margin-top:0; font-size: 0.8em;">Impacto Esperado</h3>
+                            <ul style="margin-bottom: 0; font-size: 0.55em;">
+                                <li>Ahorro de agua al evitar riegos innecesarios</li>
+                                <li>Automatización sin intervención manual</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 16: Referencias -->
+            <section data-transition="slide">
+                <h2>Referencias</h2>
+                <ul style="font-size: 0.5em;">
+                    <li>FAO. (2006). <em>Evapotranspiración del cultivo.</em> Estudio FAO 56.</li>
+                    <li>HiveMQ. (2024). <em>MQTT Cloud Broker.</em> docs.hivemq.com</li>
+                    <li>InfluxData. (2024). <em>InfluxDB Cloud.</em> docs.influxdata.com</li>
+                    <li>Open-Meteo. (2024). <em>Free Weather API.</em> open-meteo.com</li>
+                    <li>Grafana Labs. (2024). <em>Grafana.</em> grafana.com/docs</li>
+                    <li>Wokwi. (2024). <em>ESP32 Simulator.</em> docs.wokwi.com</li>
+                    <li>scikit-learn. (2024). <em>Random Forest.</em> scikit-learn.org</li>
+                    <li>CODESYS. (2024). <em>OPC UA.</em> codesys.com</li>
+                    <li>Real Games. (2024). <em>Factory I/O.</em> factoryio.com</li>
+                </ul>
+            </section>
+
+            <!-- SLIDE 17: Cierre -->
+            <section class="final-slide" data-state="final" data-transition="fade">
+                <div style="text-align: center; padding-top: 50px;">
+                    <h1>¡Gracias!</h1>
+                    <h2 style="color: var(--utpl-gold) !important;">¿Preguntas?</h2>
+                    <div class="gold-box" style="margin-top: 40px;">
+                        <p>Luis Antonio Pillaga Zhagñay</p>
+                    </div>
+                    <div class="author-info" style="margin-top: 30px;">
+                        <p>Maestría en Inteligencia Artificial Aplicada</p>
+                        <p>UTPL - Enero 2026</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: 'c/t',
+            showSlideNumber: 'all',
+            transition: 'zoom',
+            transitionSpeed: 'default',
+            backgroundTransition: 'fade',
+            center: false,
+            width: 1100,
+            height: 650,
+            margin: 0.04,
+            progress: true
+        });
+    </script>
+</body>
+</html>

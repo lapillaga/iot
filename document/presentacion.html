@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Impacto Ético de la IA - Luis Pillaga</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/theme/white.css">
+    <style>
+        :root {
+            --utpl-blue: #1e3a5f;
+            --utpl-gold: #f5b120;
+        }
+        
+        /* Reset base */
+        .reveal { background: #ffffff; }
+        .reveal .slides { text-align: left; }
+        
+        /* Tipografía para fondo blanco */
+        .reveal h1 { font-size: 1.4em; font-weight: 600; color: var(--utpl-blue); }
+        .reveal h2 { font-size: 1.1em; font-weight: 600; color: var(--utpl-blue); margin-bottom: 0.4em; }
+        .reveal h3 { font-size: 0.85em; font-weight: bold; color: var(--utpl-blue); margin: 0.2em 0; }
+        .reveal p, .reveal li { font-size: 0.65em; line-height: 1.4; color: #333; }
+        .reveal ul { margin-left: 1em; }
+        .reveal li { margin-bottom: 0.3em; }
+        .reveal strong { color: var(--utpl-blue); }
+        .reveal em { color: #555; }
+        
+        /* Línea amarilla bajo h2 */
+        .reveal h2::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: var(--utpl-gold);
+            margin-top: 5px;
+        }
+
+        /* Footer global fijo */
+        .global-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 45px;
+            background: var(--utpl-blue);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 30px;
+            z-index: 100;
+        }
+        .global-footer .accent {
+            display: none;
+        }
+        .global-footer .logo-text {
+            color: white;
+            font-weight: bold;
+            font-size: 1.3em;
+            letter-spacing: 2px;
+        }
+        
+        /* Ocultar footer en cover y final */
+        .reveal[data-current-slide="cover"] ~ .global-footer,
+        .reveal[data-current-slide="final"] ~ .global-footer { display: none; }
+
+        /* Padding inferior para no tapar contenido */
+        .reveal .slides section { padding-bottom: 60px !important; }
+        
+        /* === COVER SLIDE === */
+        .cover-slide { background: var(--utpl-blue) !important; }
+        .cover-slide h1, .cover-slide p { color: #fff !important; }
+        .cover-slide h2 { color: var(--utpl-gold) !important; }
+        .cover-slide h2::after { display: none !important; }
+        .cover-slide .subtitle { color: #aaa !important; font-size: 0.9em; }
+        .cover-slide .author-info p { color: #ccc !important; font-size: 0.85em; margin: 5px 0; }
+        .cover-slide strong { color: var(--utpl-gold) !important; }
+        
+        .gold-box {
+            background: var(--utpl-gold);
+            color: var(--utpl-blue) !important;
+            padding: 15px 25px;
+            display: inline-block;
+        }
+        .gold-box p { color: var(--utpl-blue) !important; margin: 0; font-weight: bold; }
+
+        /* === FINAL SLIDE === */
+        .final-slide { background: var(--utpl-blue) !important; }
+        .final-slide h1, .final-slide h2, .final-slide h3, .final-slide p { color: #fff !important; }
+        .final-slide h2::after { display: none; }
+        .final-slide .author-info p { color: #ccc !important; }
+
+        /* === CAJAS === */
+        .highlight-box {
+            background: rgba(30, 58, 95, 0.08);
+            border-left: 3px solid var(--utpl-gold);
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        .warning-box {
+            background: rgba(245, 177, 32, 0.12);
+            border-left: 3px solid var(--utpl-gold);
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        .danger-box {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 3px solid #e74c3c;
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        .success-box {
+            background: rgba(46, 204, 113, 0.1);
+            border-left: 3px solid #2ecc71;
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+
+        /* === LAYOUTS === */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .phase-card {
+            background: rgba(30, 58, 95, 0.05);
+            border: 1px solid rgba(30, 58, 95, 0.15);
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+        .phase-title {
+            font-weight: bold;
+            color: var(--utpl-blue);
+            margin-bottom: 6px;
+            font-size: 0.8em;
+        }
+
+        .principle-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .principle-item {
+            background: rgba(30, 58, 95, 0.05);
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-size: 0.6em;
+        }
+        .principle-item.success { background: rgba(46, 204, 113, 0.12); border-left: 3px solid #2ecc71; }
+        .principle-item.warning { background: rgba(245, 177, 32, 0.12); border-left: 3px solid var(--utpl-gold); }
+        .principle-item.danger { background: rgba(231, 76, 60, 0.12); border-left: 3px solid #e74c3c; }
+
+        /* === TIMELINE === */
+        .timeline { padding-left: 20px; border-left: 3px solid var(--utpl-gold); }
+        .timeline-item { margin-bottom: 20px; padding-left: 15px; position: relative; }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: var(--utpl-gold);
+            border-radius: 50%;
+        }
+
+        /* === STATS === */
+        .stat-box {
+            background: rgba(30, 58, 95, 0.05);
+            border: 1px solid rgba(30, 58, 95, 0.15);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--utpl-blue);
+        }
+        .stat-label {
+            font-size: 0.55em;
+            color: #666;
+        }
+
+        /* === AGENDA === */
+        .agenda-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        .agenda-column {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .agenda-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        .agenda-number {
+            background: var(--utpl-gold);
+            color: var(--utpl-blue);
+            font-weight: bold;
+            font-size: 1.1em;
+            padding: 8px 14px;
+            min-width: 45px;
+            text-align: center;
+        }
+        .agenda-content {
+            flex: 1;
+        }
+        .agenda-text {
+            color: var(--utpl-blue);
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+        .agenda-line {
+            border-bottom: 2px dotted var(--utpl-blue);
+            margin-top: 8px;
+            position: relative;
+            opacity: 0.4;
+        }
+        .agenda-dot {
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 8px;
+            height: 8px;
+            background: var(--utpl-blue);
+            border-radius: 50%;
+        }
+
+        /* Barra de progreso */
+        .reveal .progress {
+            height: 5px;
+            background: rgba(30, 58, 95, 0.2);
+            z-index: 200;
+        }
+        .reveal .progress span {
+            background: var(--utpl-gold);
+        }
+
+        /* Número de slide */
+        .reveal .slide-number {
+            background: var(--utpl-blue);
+            color: white;
+            font-size: 14px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            bottom: 100px;
+            right: 15px;
+        }
+
+        /* Flechas de navegación */
+        .reveal .controls {
+            bottom: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- SLIDE 1: Portada -->
+            <section class="cover-slide" data-state="cover" data-transition="fade">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; height: 100%; padding: 10px 30px;">
+                    <!-- Columna izquierda -->
+                    <div style="flex: 1; padding-top: 20px;">
+                        <h1 style="font-size: 1.2em; margin: 0 0 10px 0; font-weight: 600;">Ética en Inteligencia Artificial</h1>
+                        <h2 style="font-size: 1.0em; margin: 0; font-weight: 600; color: var(--utpl-gold) !important;">Metodologías prácticas de evaluación de la IA de la UNESCO</h2>
+                        
+                        <div style="position: absolute; bottom: 80px; left: 30px;">
+                            <p style="margin: 8px 0; font-size: 0.7em;">Estudiante: Pillaga Zhagñay, Luis Antonio</p>
+                            <p style="margin: 8px 0; font-size: 0.7em;">Docente: Reyes Conza, Maleny Gabriela</p>
+                            <p style="margin: 8px 0; font-size: 0.7em;">Fecha: Enero 2026</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Columna derecha -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 60px;">
+                        <img src="figures/logo_utpl.jpg" alt="UTPL" style="width: 180px; margin-bottom: 15px;">
+                        <div class="gold-box" style="text-align: center; padding: 12px 20px;">
+                            <p style="font-size: 0.75em; margin: 0;">Maestría en Inteligencia Artificial<br>Aplicada</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Franja amarilla inferior -->
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 6px; background: var(--utpl-gold);"></div>
+                <!-- Acento amarillo pequeño izquierda -->
+                <div style="position: absolute; bottom: 50px; left: 30px; width: 60px; height: 3px; background: var(--utpl-gold);"></div>
+            </section>
+
+            <!-- SLIDE 2: Agenda -->
+            <section data-transition="zoom">
+                <h2>Agenda</h2>
+                <div class="agenda-container">
+                    <div class="agenda-column">
+                        <div class="agenda-item">
+                            <span class="agenda-number">01</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Introducción</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">02</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Metodología EIA de la UNESCO</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">03</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Caso de estudio</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="agenda-column">
+                        <div class="agenda-item">
+                            <span class="agenda-number">04</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Resultados</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                        <div class="agenda-item">
+                            <span class="agenda-number">05</span>
+                            <div class="agenda-content">
+                                <span class="agenda-text">Conclusiones</span>
+                                <div class="agenda-line"><span class="agenda-dot"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 3: Deuda Ética -->
+            <section data-transition="slide">
+                <h2>De la Deuda Técnica a la Deuda Ética</h2>
+                <div class="two-columns">
+                    <div class="warning-box">
+                        <h3 style="margin-top:0;">Deuda Técnica</h3>
+                        <p>Decisiones bajo presión: bugs, refactorizaciones, sistemas imposibles de mantener.</p>
+                    </div>
+                    <div class="danger-box">
+                        <h3 style="margin-top:0;">Deuda Ética</h3>
+                        <p>Priorizar funcionalidad sobre personas: sesgos, violaciones de privacidad, daños.</p>
+                    </div>
+                </div>
+                <div class="highlight-box" style="margin-top: 20px;">
+                    <p style="margin:0;"><strong>Ejemplo:</strong> Tesla Autopilot - 467 accidentes, 54 heridos, 14 muertes (NHTSA, 2024)</p>
+                </div>
+            </section>
+
+            <!-- SLIDE 4: UNESCO -->
+            <section data-transition="slide">
+                <h2>La Respuesta de la UNESCO</h2>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <strong>2021</strong> - Recomendación sobre la Ética de la IA
+                        <p>Marco normativo que abarca "todas las etapas del ciclo de vida de los sistemas de IA"</p>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>2023</strong> - Herramientas de implementación
+                        <p>Metodologías prácticas: RAM y EIA</p>
+                    </div>
+                    <div class="timeline-item">
+                        <strong>2025</strong> - Pilotos en América Latina
+                        <p>Chile, Uruguay, Argentina implementando EIA en sistemas gubernamentales</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 5: RAM vs EIA -->
+            <section data-transition="fade">
+                <h2>Metodologías UNESCO: RAM vs EIA</h2>
+                <div class="two-columns">
+                    <div class="phase-card">
+                        <div class="phase-title">RAM - Readiness Assessment</div>
+                        <p><strong>Nivel:</strong> Macro (país)</p>
+                        <p><strong>Propósito:</strong> Evaluar preparación institucional</p>
+                        <p><strong>Para quién:</strong> Gobiernos, legisladores</p>
+                        <p><strong>Pregunta clave:</strong> ¿Está el país listo para regular IA?</p>
+                    </div>
+                    <div class="phase-card" style="border: 2px solid var(--utpl-gold);">
+                        <div class="phase-title">EIA - Evaluación de Impacto Ético</div>
+                        <p><strong>Nivel:</strong> Micro (sistema)</p>
+                        <p><strong>Propósito:</strong> Evaluar sistema específico</p>
+                        <p><strong>Para quién:</strong> Desarrolladores, empresas</p>
+                        <p><strong>Pregunta clave:</strong> ¿Cumple este sistema con principios éticos?</p>
+                    </div>
+                </div>
+                <p style="text-align: center; margin-top: 20px; font-style: italic;">
+                    Ambas metodologías se complementan - ninguna tiene sentido por sí sola
+                </p>
+            </section>
+
+            <!-- SLIDE 6: Fases EIA -->
+            <section data-transition="slide">
+                <h2>Fases de la Evaluación de Impacto Ético</h2>
+                <div class="two-columns">
+                    <div class="phase-card">
+                        <div class="phase-title">Fase 1: Scoping (Alcance)</div>
+                        <ul>
+                            <li><strong>Prohibiciones legales:</strong> ¿Hay impedimentos?</li>
+                            <li><strong>Proporcionalidad:</strong> ¿Se justifica?</li>
+                            <li><strong>Consulta:</strong> ¿Se consultó afectados?</li>
+                        </ul>
+                    </div>
+                    <div class="phase-card" style="border: 2px solid var(--utpl-gold);">
+                        <div class="phase-title">Fase 2: Principios UNESCO</div>
+                        <div class="principle-grid">
+                            <div class="principle-item">Seguridad</div>
+                            <div class="principle-item">Equidad</div>
+                            <div class="principle-item">Sostenibilidad</div>
+                            <div class="principle-item">Privacidad</div>
+                            <div class="principle-item">Supervisión humana</div>
+                            <div class="principle-item">Transparencia</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 7: Limitaciones -->
+            <section data-transition="zoom">
+                <h2>Limitaciones de la EIA</h2>
+                <div class="warning-box">
+                    <h3 style="margin-top:0;">Ethics Washing</h3>
+                    <p>Al ser una <strong>autoevaluación</strong>, no hay verificación externa. Depende de la honestidad del evaluador.</p>
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <h3>No ofrece:</h3>
+                        <ul>
+                            <li>Certificación oficial</li>
+                            <li>Auditoría externa</li>
+                            <li>Consecuencias legales</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Sí ofrece:</h3>
+                        <ul>
+                            <li>Marco estructurado</li>
+                            <li>Preguntas incómodas</li>
+                            <li>Punto de partida</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 8: Caso de estudio -->
+            <section data-transition="zoom">
+                <h2>Caso de Estudio: Lectura de Medidores de Agua</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Contexto</h3>
+                        <ul>
+                            <li><strong>Ubicación:</strong> Parroquia rural, Biblián, Ecuador</li>
+                            <li><strong>Usuarios:</strong> 355 familias</li>
+                            <li><strong>Operadores:</strong> Junta de Agua Potable</li>
+                        </ul>
+                        <h3>Tecnología</h3>
+                        <ul>
+                            <li>Visión artificial (reconocimiento de dígitos)</li>
+                            <li>Procesamiento local en dispositivo móvil</li>
+                            <li>Sin envío de datos a servidores externos</li>
+                        </ul>
+                    </div>
+                    <div style="text-align: center;">
+                        <img src="../figures/FOCUSING.jpeg" alt="Sistema de lectura de medidores" style="max-width: 100%; max-height: 480px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 9: Resultados Scoping -->
+            <section data-transition="slide">
+                <h2>Resultados: Fase de Scoping</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="success-box">
+                            <h3 style="margin-top:0;">Prohibiciones Legales ✓</h3>
+                            <p>No vigilancia masiva, no decisiones autónomas sobre personas</p>
+                        </div>
+                        <div class="success-box">
+                            <h3 style="margin-top:0;">Proporcionalidad ✓</h3>
+                            <p>Errores de digitación manual justifican la asistencia tecnológica</p>
+                        </div>
+                    </div>
+                    <div class="warning-box">
+                        <h3 style="margin-top:0;">Consulta con Partes Afectadas ⚠</h3>
+                        <p><strong>Brecha cultural:</strong> Adultos mayores sin familiaridad con IA.</p>
+                        <p><em>Tras entender beneficios, participaron activamente.</em></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 10: Principios que se cumplen -->
+            <section data-transition="slide">
+                <h2>Resultados: Principios que se Cumplen</h2>
+                <div class="principle-grid">
+                    <div class="principle-item success">
+                        <strong>Supervisión Humana ✓</strong>
+                        <p style="margin: 5px 0 0 0;">Human-in-the-loop: IA propone, operador valida</p>
+                    </div>
+                    <div class="principle-item success">
+                        <strong>Transparencia ✓</strong>
+                        <p style="margin: 5px 0 0 0;">Muestra foto original + número detectado</p>
+                    </div>
+                    <div class="principle-item success">
+                        <strong>Rendición de Cuentas ✓</strong>
+                        <p style="margin: 5px 0 0 0;">Cada lectura asociada al usuario - trazabilidad</p>
+                    </div>
+                    <div class="principle-item success">
+                        <strong>Seguridad ✓</strong>
+                        <p style="margin: 5px 0 0 0;">Procesamiento local, acceso autenticado</p>
+                    </div>
+                </div>
+                <div class="principle-item success" style="margin-top: 15px; text-align: center;">
+                    <strong>Sostenibilidad Ambiental ✓</strong> - Impacto inexistente, usa dispositivos existentes
+                </div>
+            </section>
+
+            <!-- SLIDE 11: Deudas pendientes -->
+            <section data-transition="slide">
+                <h2>Resultados: Deudas Éticas Pendientes</h2>
+                <div class="two-columns">
+                    <div class="danger-box">
+                        <h3 style="margin-top:0;">Privacidad y Protección de Datos ✗</h3>
+                        <ul>
+                            <li>Almacena fotos + coordenadas GPS</li>
+                            <li><strong>Sin</strong> consentimiento formal</li>
+                            <li><strong>Sin</strong> política de privacidad</li>
+                            <li>Incumple LOPDP Ecuador</li>
+                        </ul>
+                    </div>
+                    <div class="warning-box">
+                        <h3 style="margin-top:0;">Equidad de Acceso ⚠</h3>
+                        <ul>
+                            <li>Visión artificial demanda recursos elevados</li>
+                            <li>Problemas con dispositivos gama baja</li>
+                            <li><strong>Riesgo:</strong> beneficia solo a quien tiene mejor tecnología</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 12: Acciones correctivas -->
+            <section data-transition="fade">
+                <h2>Acciones Correctivas Identificadas</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Privacidad</h3>
+                        <div class="phase-card">
+                            <ul>
+                                <li>Formulario de consentimiento informado</li>
+                                <li>Política de privacidad en la app</li>
+                                <li>Definir retención de fotografías</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Equidad</h3>
+                        <div class="phase-card">
+                            <ul>
+                                <li>Dispositivos institucionales</li>
+                                <li>No depender de equipos personales</li>
+                                <li>Especificaciones mínimas documentadas</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="highlight-box" style="margin-top: 20px; text-align: center;">
+                    <p style="margin: 0;"><strong>Ninguna acción requiere reescribir el sistema</strong><br>
+                    Son decisiones institucionales informadas por el diagnóstico EIA</p>
+                </div>
+            </section>
+
+            <!-- SLIDE 13: Conclusiones -->
+            <section data-transition="zoom">
+                <h2>Conclusiones</h2>
+                <div class="two-columns">
+                    <div class="highlight-box">
+                        <h3 style="margin-top:0;">Metodología EIA</h3>
+                        <ul>
+                            <li>Herramienta de <strong>diagnóstico</strong> efectiva</li>
+                            <li>Riesgo: ethics washing</li>
+                            <li>Valor: preguntas incómodas antes del daño</li>
+                        </ul>
+                    </div>
+                    <div class="success-box">
+                        <h3 style="margin-top:0;">Caso de estudio</h3>
+                        <ul>
+                            <li><strong>Cumple:</strong> Supervisión, transparencia, seguridad</li>
+                            <li><strong>Deuda:</strong> Privacidad y equidad</li>
+                            <li><strong>Solución:</strong> Decisiones institucionales</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE 14: Reflexión final -->
+            <section data-transition="fade">
+                <h2>Reflexión Final</h2>
+                <blockquote style="border-left: 4px solid var(--utpl-gold); padding-left: 20px; font-style: italic; margin: 20px 0;">
+                    "Desarrollar IA para parroquias rurales en América Latina implica trabajar con recursos limitados, usuarios poco familiarizados con la tecnología y marcos legales en progreso."
+                </blockquote>
+                <p>La tentación de priorizar funcionalidad sobre ética es comprensible, <strong>pero costosa.</strong></p>
+                <div class="highlight-box" style="margin-top: 20px;">
+                    <p style="margin: 0; text-align: center;">
+                        La EIA no garantiza sistemas perfectos, pero es un <strong>punto de partida valioso</strong> para quienes desarrollamos tecnología en estos contextos.
+                    </p>
+                </div>
+            </section>
+
+            <!-- SLIDE 15: Referencias -->
+            <section data-transition="slide">
+                <h2>Referencias</h2>
+                <ul style="font-size: 0.7em;">
+                    <li>UNESCO. (2021). <em>Recomendación sobre la Ética de la Inteligencia Artificial.</em></li>
+                    <li>UNESCO. (2023). <em>Evaluación de impacto ético: herramienta de la Recomendación.</em></li>
+                    <li>Morley, J., et al. (2021). Ethics as a service. <em>Minds and Machines, 31</em>, 239-256.</li>
+                    <li>AllahRakha, N. (2024). UNESCO's AI Ethics Principles. <em>Int. Journal of Law and Policy.</em></li>
+                    <li>GobLab UAI. (2025). Pilotaje de la EIA de UNESCO en América Latina.</li>
+                    <li>Ley Orgánica de Protección de Datos Personales de Ecuador. (2021).</li>
+                </ul>
+            </section>
+
+            <!-- SLIDE 16: Cierre -->
+            <section class="final-slide" data-state="final" data-transition="fade">
+                <div style="text-align: center; padding-top: 50px;">
+                    <h1>¡Gracias!</h1>
+                    <h2 style="color: var(--utpl-gold) !important;">¿Preguntas?</h2>
+                    <div class="gold-box" style="margin-top: 40px;">
+                        <p>Luis Antonio Pillaga Zhagñay</p>
+                    </div>
+                    <div class="author-info" style="margin-top: 30px;">
+                        <p>Maestría en Inteligencia Artificial Aplicada</p>
+                        <p>UTPL - Enero 2026</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Footer global fuera de reveal -->
+    <div class="global-footer" id="globalFooter">
+        <div class="accent"></div>
+        <div class="logo-text">UTPL</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.1/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: 'c/t',
+            showSlideNumber: 'all',
+            transition: 'zoom',
+            transitionSpeed: 'default',
+            backgroundTransition: 'fade',
+            center: false,
+            width: 1100,
+            height: 650,
+            margin: 0.04,
+            progress: true
+        });
+
+        // Mostrar/ocultar footer según la slide
+        Reveal.on('slidechanged', function(event) {
+            var footer = document.getElementById('globalFooter');
+            var currentSlide = event.currentSlide;
+            
+            if (currentSlide.classList.contains('cover-slide') || 
+                currentSlide.classList.contains('final-slide')) {
+                footer.style.display = 'none';
+            } else {
+                footer.style.display = 'flex';
+            }
+        });
+
+        // Ocultar en la primera carga si es cover
+        document.addEventListener('DOMContentLoaded', function() {
+            var firstSlide = document.querySelector('.reveal .slides section');
+            var footer = document.getElementById('globalFooter');
+            if (firstSlide && firstSlide.classList.contains('cover-slide')) {
+                footer.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
